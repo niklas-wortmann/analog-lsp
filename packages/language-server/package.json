@@ -1,5 +1,5 @@
 {
-	"name": "@html1/language-server",
+	"name": "@analogjs/language-server",
 	"version": "0.0.1",
 	"main": "out/index.js",
 	"license": "MIT",
@@ -8,15 +8,41 @@
 		"out/**/*.d.ts"
 	],
 	"bin": {
-		"html1-language-server": "./bin/html1-language-server.js"
+		"@analogjs/language-server": "bin/analog-language-server.js"
+	},
+	"type": "commonjs",
+	"scripts": {
+		"build": "tsc",
+		"dev": "tsc --watch",
+		"test": "mocha --timeout 10000 --require tsx --require test/takedown.ts test/misc/init.test.ts test/**/*.test.ts",
+		"test:match": "pnpm run test -g"
 	},
 	"dependencies": {
-		"@volar/language-core": "~1.10.5",
-		"@volar/language-server": "~1.10.5",
-		"@volar/language-service": "~1.10.5",
-		"volar-service-css": "0.0.15",
-		"volar-service-emmet": "0.0.15",
-		"volar-service-html": "0.0.15",
+		"@volar/language-core": "2.0.0-alpha.13",
+		"@volar/language-server": "2.0.0-alpha.13",
+		"@volar/language-service": "2.0.0-alpha.13",
+		"@volar/typescript": "1.11.1",
+		"path-browserify": "1.0.1",
+		"semver": "7.5.4",
+		"volar-service-css": "0.0.25",
+		"volar-service-emmet": "0.0.25",
+		"volar-service-html": "0.0.25",
+		"volar-service-typescript": "^0.0.25",
 		"vscode-html-languageservice": "^5.1.1"
+	},
+	"devDependencies": {
+		"@types/path-browserify": "1.0.2",
+		"@types/semver": "7.5.6",
+		"@types/chai": "^4.3.5",
+		"@types/mocha": "^10.0.1",
+		"@types/node": "^18.17.8",
+		"@volar/test-utils": "2.0.0-alpha.10",
+		"mocha": "^10.2.0",
+		"chai": "^4.3.7",
+		"tsx": "^3.12.7",
+		"vscode-languageserver-protocol": "^3.17.5",
+		"vscode-languageserver-textdocument": "^1.0.11",
+		"vscode-uri": "^3.0.8",
+		"typescript": "^5.2.2"
 	}
 }

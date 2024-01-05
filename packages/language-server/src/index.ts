@@ -1,49 +1,67 @@
-import { language, Html1File } from './language';
-import createEmmetService from 'volar-service-emmet';
-import createHtmlService from 'volar-service-html';
-import createCssService from 'volar-service-css';
-import { createConnection, startLanguageServer, LanguageServerPlugin, Diagnostic, Service } from '@volar/language-server/node';
+import { getLanguageModule } from './language-server-plugin';
+import { create as createEmmetService } from 'volar-service-emmet';
+import { create as createHtmlService } from 'volar-service-html';
+import { create as createCssService } from 'volar-service-css';
+import { create as createTypeScriptService } from 'volar-service-typescript';
+import { createNodeServer, createConnection, createSimpleProjectProvider } from '@volar/language-server/node';
+import {NgFile} from "./virtualFile/ngFile";
+import {Diagnostic} from "@volar/language-server";
 
-const plugin: LanguageServerPlugin = (): ReturnType<LanguageServerPlugin> => ({
-	extraFileExtensions: [{ extension: 'html1', isMixedContent: true, scriptKind: 7 }],
-	resolveConfig(config) {
+const connection = createConnection();
+const server = createNodeServer(connection);
 
-		// languages
-		config.languages ??= {};
-		config.languages.html1 ??= language;
+connection.listen();
 
-		// services
-		config.services ??= {};
-		config.services.html ??= createHtmlService();
-		config.services.css ??= createCssService();
-		config.services.emmet ??= createEmmetService();
-		config.services.html1 ??= (context): ReturnType<Service> => ({
-			provideDiagnostics(document) {
+connection.onInitialize(params => {
+	const ts = require('typescript');
+	return server.initialize(params, createSimpleProjectProvider, {
+		getLanguagePlugins() {
+			return [getLanguageModule(ts)];
+		},
+		getServicePlugins() {
+			return [
+				createHtmlService(),
+				createCssService(),
+				createEmmetService(),
+				createTypeScriptService(ts),
+				{
+					create(context) {
+						return {
+							provideDiagnostics(document) {
 
-				const [file] = context!.documents.getVirtualFileByUri(document.uri);
-				if (!(file instanceof Html1File)) return;
+								const fileName = context.env.uriToFileName(document.uri);
+								const [file] = context.language.files.getVirtualFile(fileName);
+								if (!(file instanceof NgFile)) return;
 
-				const styleNodes = file.htmlDocument.roots.filter(root => root.tag === 'style');
-				if (styleNodes.length <= 1) return;
+								const styleNodes = file.htmlDocument.roots.filter(root => root.tag === 'style');
+								if (styleNodes.length <= 1) return;
 
-				const errors: Diagnostic[] = [];
-				for (let i = 1; i < styleNodes.length; i++) {
-					errors.push({
-						severity: 2,
-						range: {
-							start: file.document.positionAt(styleNodes[i].start),
-							end: file.document.positionAt(styleNodes[i].end),
-						},
-						source: 'html1',
-						message: 'Only one style tag is allowed.',
-					});
-				}
-				return errors;
-			},
-		});
-
-		return config;
-	},
+								const errors: Diagnostic[] = [];
+								for (let i = 1; i < styleNodes.length; i++) {
+									errors.push({
+										severity: 2,
+										range: {
+											start: file.document.positionAt(styleNodes[i].start),
+											end: file.document.positionAt(styleNodes[i].end),
+										},
+										source: 'ng',
+										message: 'Only one style tag is allowed.',
+									});
+								}
+								return errors;
+							},
+						}
+					},
+				},
+			];
+		},
+	});
 });
 
-startLanguageServer(createConnection(), plugin);
+connection.onInitialized(() => {
+	server.initialized();
+});
+
+connection.onShutdown(() => {
+	server.shutdown();
+});
